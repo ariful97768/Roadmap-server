@@ -34,15 +34,14 @@ async function run() {
 
         // get all post
         app.get('/', async (req, res) => {
-            const result = await postCollection.find().toArray()
+            let query = req.query.status
+            const result = await postCollection.find((query === 'all' ? {} : { status: query })).toArray()
             res.send(result)
         })
         // post comment
         app.post('/add-comment', async (req, res) => {
             const data = req.body
-            console.log(data);
             const result = await commentCollection.insertOne(data)
-            console.log(result);
             res.send(result)
         })
         // get a single post
@@ -52,8 +51,42 @@ async function run() {
         })
         // get comments for a specific post
         app.get('/get-comments/:id', async (req, res) => {
-            console.log(req.query.userId);
             const result = await commentCollection.find({ postId: req.params.id }).toArray()
+
+            let sortedData = result.filter(d => d.replyTo === null)
+            let finalData = sortedData.map(firstLevelData => {
+                let replyData = result
+                    .filter(d => String(d.replyTo) === String(firstLevelData._id))
+                    .map(secondLevelData => {
+                        let thirdLevelReply = result.filter(d => String(d.replyTo) === String(secondLevelData._id))
+                        return {
+                            ...secondLevelData,
+                            replies: thirdLevelReply
+                        }
+                    })
+                return {
+                    ...firstLevelData,
+                    replies: replyData
+                }
+            })
+            res.send(finalData)
+        })
+        // update comment
+        app.patch('/update-comment/:id', async (req, res) => {
+            const data = req.body
+            const result = await commentCollection.updateOne({ _id: new ObjectId(req.params.id) }, { $set: { comment: data.comment } })
+            res.send(result)
+        })
+        // upvote
+        app.patch('/vote/:id', async (req, res) => {
+            const result = await postCollection.updateOne({ _id: new ObjectId(req.params.id) }, { $inc: { upvotes: (req.query.voteType === 'true' ? 1 : -1) } })
+            res.send(result)
+
+        })
+
+        // delete comment
+        app.delete('/delete-comment/:id', async (req, res) => {
+            const result = await commentCollection.deleteOne({ _id: new ObjectId(req.params.id) })
             res.send(result)
         })
 
