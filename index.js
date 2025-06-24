@@ -79,9 +79,26 @@ async function run() {
         })
         // upvote
         app.patch('/vote/:id', async (req, res) => {
-            const result = await postCollection.updateOne({ _id: new ObjectId(req.params.id) }, { $inc: { upvotes: (req.query.voteType === 'true' ? 1 : -1) } })
-            res.send(result)
+            let updateOps;
+            const post = await postCollection.findOne({ _id: new ObjectId(req.params.id) })
+            if (post.upvotedUserIds?.includes(req.query.userId)) {
+                updateOps = {
+                    $pull: { upvotedUserIds: req.query.userId },
+                    $inc: { upvotes: -1 }
+                }
+            } else {
+                updateOps = {
+                    $addToSet: { upvotedUserIds: req.query.userId },
+                    $inc: { upvotes: 1 }
+                }
+            }
 
+            const result = await postCollection.updateOne(
+                { _id: new ObjectId(req.params.id) },
+                updateOps
+            )
+            res.send(result)
+            // console.log(req.query.userId);
         })
 
         // delete comment
