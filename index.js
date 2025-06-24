@@ -24,13 +24,12 @@ async function run() {
     try {
 
         const database = client.db('RoadmapDB')
-        const usersCollection = database.collection('users')
         const postCollection = database.collection('posts')
         const commentCollection = database.collection('comments')
 
-        await client.connect();
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // await client.connect();
+        // await client.db("admin").command({ ping: 1 });
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         // get all post
         app.get('/', async (req, res) => {
